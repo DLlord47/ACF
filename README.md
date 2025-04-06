@@ -1,3 +1,2 @@
 # ACF
-Auto correction function
-IDK what to say anything else)
+Auto correction function. It's still unfinished! IDK what to say anything else)
