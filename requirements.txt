@@ -1,1 +1,2 @@
-Levenshtein == 0.27.1
+Levenshtein=0.27.1
+torch=2.7.0
