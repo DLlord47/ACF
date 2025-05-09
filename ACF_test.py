@@ -177,11 +177,11 @@ def correction(text):
     return denorm(text)
 
 def correction_ai(text, dnm=True):
-    text = norm(text, 1)
+    text = norm(text, mode=1)
     for i in range(len(text)):
         inputs = tokenizer(text[i], max_length=None, padding="longest", truncation=False, return_tensors="pt").to(device)
         outputs = model.generate(**inputs.to(model.device), max_length = inputs["input_ids"].size(1) * 1.5)
-        text[i] = norm(tokenizer.batch_decode(outputs, skip_special_tokens=True))
+        text[i] = norm(tokenizer.batch_decode(outputs, skip_special_tokens=True)[0])
     if dnm: return denorm(text)
     else: return text
 
