@@ -203,7 +203,7 @@ def report(text):
 
 def report_ai(text):
     res = []
-    ctext = correction_ai(text)
+    ctext = correction_ai(text, dnm=False)
     text = norm(text, 1)
     for i in range(len(text)): text[i] = norm(text[i])
     for i in range(len(ctext)):
