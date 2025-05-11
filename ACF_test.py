@@ -229,7 +229,7 @@ def report_ai(text):
     for i in range(len(text)):
         for j in range(len(text[i])):
             if text[i][j] not in ctext[i]:
-                c = ctext[i][ctext[i].index(sorted(ctext, key=lambda x: wLev(x, text[i][j]))[0])]
+                c = ctext[i][ctext[i].index(sorted(ctext[i], key=lambda x: wLev(x, text[i][j]))[0])]
                 st = f"{text[i][j]} => {c}"
                 print(st)
                 res.append(st)
