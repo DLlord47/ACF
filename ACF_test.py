@@ -5,11 +5,11 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 device = "cuda" if torch.cuda.is_available() else \
-         "xpu" if hasattr(torch, "xpu") and torch.xpu.is_available() else \
-         "mps" if torch.backends.mps.is_available() else "cpu"
+    "xpu" if hasattr(torch, "xpu") and torch.xpu.is_available() else \
+        "mps" if torch.backends.mps.is_available() else "cpu"
 tokenizer = AutoTokenizer.from_pretrained("ai-forever/sage-fredt5-large")
 model = AutoModelForSeq2SeqLM.from_pretrained(
-    "ai-forever/sage-fredt5-large", torch_dtype = torch.float16
+    "ai-forever/sage-fredt5-large", torch_dtype=torch.float16
 ).to(device)
 
 toreplace = {
@@ -32,7 +32,7 @@ toreplace = {
     'h': 'н',
     't': 'т',
     'r': 'г',
-} #    '': '',
+}  # '': '',
 
 similarity_weights = {
     'а': {'а': 1.0, 'о': 0.4, 'у': 0.1, 'я': 0.7, 'е': 0.2, 'с': 0.1, 'д': 0.1},
@@ -70,6 +70,7 @@ similarity_weights = {
     'я': {'я': 1.0, 'а': 0.7, 'е': 0.4, 'ю': 0.3, 'з': 0.1, 'н': 0.1}
 }
 
+
 def rep(text):
     result = ""
     i = 0
@@ -85,6 +86,7 @@ def rep(text):
             result += text[i]
             i += 1
     return result
+
 
 def norm(text, mode=0):
     if mode == 1:
@@ -102,11 +104,13 @@ def norm(text, mode=0):
                     current_sentence.append(word)
                     sentences.append(" ".join(current_sentence))
                     current_sentence = []
-            else: current_sentence.append(word)
+            else:
+                current_sentence.append(word)
         if current_sentence: sentences.append(" ".join(current_sentence))
         return sentences
     text = rep(text.lower())
     return text.split()
+
 
 def denorm(sentences):
     if not sentences: return ""
@@ -114,8 +118,9 @@ def denorm(sentences):
     text = " ".join(sentences)
     for p in ',;:!?.…‽': text = text.replace(f' {p} ', f'{p} ').replace(f' {p}', f'{p}')
     text = text.replace(' .', '.').replace(' !', '!').replace(' ?', '?')
-    text = text.replace('…', '...').replace('‽','?!')
+    text = text.replace('…', '...').replace('‽', '?!')
     return text
+
 
 dictionary = set()
 with open('dict.opcorpora.txt', encoding='utf-8') as f:
@@ -126,15 +131,18 @@ with open('dict.opcorpora.txt', encoding='utf-8') as f:
             if not word.isdigit(): dictionary.add(word)
 dictionary = list(dictionary)
 
+
 def build_ngram_index(words, n=3):
     index = defaultdict(list)
     for word in words:
         for i in range(len(word) - n + 1):
-            ngram = word[i:i+n]
+            ngram = word[i:i + n]
             index[ngram].append(word)
     return index
 
+
 index = build_ngram_index(dictionary)
+
 
 def del_value(w1, w2, p1, p2):
     res = 1
@@ -142,21 +150,27 @@ def del_value(w1, w2, p1, p2):
     if w1[p1 - 1] == w1[p1] and p1 != 0: res *= 0.1
     return res
 
+
 def wLev(w1, w2):
     dist = 0
     for i in Levenshtein.editops(w1, w2):
         if i[0] == 'replace':
-            try: dist += (1 - similarity_weights[w1[i[1]]][w2[i[2]]])
-            except KeyError: dist += 1
-        elif i[0] == 'delete': dist += del_value(w1, w2, i[1], i[2])
-        else: dist += 1
+            try:
+                dist += (1 - similarity_weights[w1[i[1]]][w2[i[2]]])
+            except KeyError:
+                dist += 1
+        elif i[0] == 'delete':
+            dist += del_value(w1, w2, i[1], i[2])
+        else:
+            dist += 1
     return dist
+
 
 def guess(word, n=3, border=5):
     global index
     candidates = set()
     for i in range(len(word) - n + 1):
-        ngram = word[i:i+n]
+        ngram = word[i:i + n]
         candidates.update(index[ngram])
     closest_words = []
     for candidate in candidates:
@@ -165,6 +179,7 @@ def guess(word, n=3, border=5):
             closest_words.append((candidate, score))
     closest_words.sort(key=lambda x: x[1])
     return closest_words[:5]
+
 
 def correction(text):
     text = norm(text, 1)
@@ -176,14 +191,19 @@ def correction(text):
                 if var != []: text[i][j] = var[0][0]
     return denorm(text)
 
+
 def correction_ai(text, dnm=True):
     text = norm(text, mode=1)
     for i in range(len(text)):
-        inputs = tokenizer(text[i], max_length=None, padding="longest", truncation=False, return_tensors="pt").to(device)
-        outputs = model.generate(**inputs.to(model.device), max_length = inputs["input_ids"].size(1) * 1.5)
+        inputs = tokenizer(text[i], max_length=None, padding="longest", truncation=False, return_tensors="pt").to(
+            device)
+        outputs = model.generate(**inputs.to(model.device), max_length=inputs["input_ids"].size(1) * 1.5)
         text[i] = norm(tokenizer.batch_decode(outputs, skip_special_tokens=True)[0])
-    if dnm: return denorm(text)
-    else: return text
+    if dnm:
+        return denorm(text)
+    else:
+        return text
+
 
 def report(text):
     res = []
@@ -201,28 +221,27 @@ def report(text):
                 res.append(st)
     return res
 
+
 def report_ai(text):
     res = []
     ctext = correction_ai(text, dnm=False)
-    text = norm(text, 1)
+    text = norm(text, mode=1)
     for i in range(len(text)): text[i] = norm(text[i])
-    for i in range(len(ctext)):
-        for j in range(len(ctext[i])):
-            if ctext[i][j] not in dictionary and ctext[i][j] == text[i][j]: st = f"{text[i][j]} => None"
-            elif wLev(text[i][j], ctext[i][j]) < 3: st = f"{text[i][j]} => {ctext[i][j]}"
-            elif len(text[i]) > len(ctext[i][j]) and wLev(text[i][j]+text[i][j+1], ctext[i][j]) < 3:
-                st = f"{text[i][j]} {text[i][j+1]} => {ctext[i][j]}"
-            else: st = f"{text[i][j]} => {ctext[i][j]}(?)"
-            print(st)
-            res.append(st)
+    for i in range(len(text)):
+        for j in range(len(text[i])):
+            if text[i][j] not in ctext[i]:
+                c = ctext[i][ctext[i].index(sorted(ctext, key=lambda x: wLev(x, text[i][j]))[0])]
+                st = f"{text[i][j]} => {c}"
+                print(st)
+                res.append(st)
     return res
-            
+
 
 if __name__ == '__main__':
     text = ''
     with open('[e]file_1.txt', encoding="utf-8") as f:
         c = 0
-        fr,t = 52, 81
+        fr, t = 52, 81
         for l in f:
             if l == '\n':
                 c += 1
