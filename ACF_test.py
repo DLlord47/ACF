@@ -1,4 +1,3 @@
-from spylls.hunspell import Dictionary
 import Levenshtein
 from collections import defaultdict
 import torch
